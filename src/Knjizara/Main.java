@@ -1,11 +1,9 @@
 package Knjizara;
-import java.sql.SQLOutput;
-import java.util.NoSuchElementException;
 import java.util.Scanner;
 
 
 public class Main {
-	static Scanner scanner = new Scanner(System.in);
+
 
 	public static void main(String[] args) {
 		DatabaseConnection d = new DatabaseConnection("jdbc:mysql://localhost:3306/knjizara", "root", "");
@@ -26,26 +24,24 @@ public class Main {
 			System.out.println("=====================================");
 			System.out.print("Izaberite opciju: ");
 
-
+			Scanner scanner = new Scanner(System.in);
 			String choice = scanner.nextLine();
 
 			switch (choice) {
-				case "1": // Dodaj
-					showAddSubMenu(scanner);
+				case "1":
+					showAddSubMenu();
 					break;
 				case "2":
-					showUpdateSubMenu(scanner);
+					showUpdateSubMenu();
 					break;
-				case "3": // Prikaži
-					// Ovde metode za prikaz
-					System.out.println("Pozvaćemo metode za prikaz...");
+				case "3":
+					showDisplaySubMenu();
 					break;
-				case "4": // Obriši
-					// Ovde metode za brisanje
-					System.out.println("Pozvaćemo metode za brisanje...");
+				case "4":
+					showDeleteSubMenu();
+					break;
 				case "5":
-
-					System.out.println("Pozvaćemo metode izdavanje računa");
+					d.izdajRacunIzKonzole();
 					break;
 				case "0":
 					exit = true;
@@ -59,11 +55,8 @@ public class Main {
 
 
 	}
-
-	/**
-	 * Pomoćni metod za prikaz podmenija prilikom izbora "Dodaj"
-	 */
-	private static void showAddSubMenu(Scanner scanner) {
+	private static void showAddSubMenu() {
+		Scanner scanner = new Scanner(System.in);
 		DatabaseConnection d = new DatabaseConnection("jdbc:mysql://localhost:3306/knjizara", "root", "");
 
 		boolean exit = false;
@@ -75,6 +68,7 @@ public class Main {
 			System.out.println("4) Distributera");
 			System.out.println("5) Kupca");
 			System.out.println("6) Kategoriju");
+			System.out.println("7) Kreiraj karticu");
 			System.out.println("0) Izlaz");
 			System.out.print("Izbor: ");
 
@@ -99,6 +93,19 @@ public class Main {
 				case "6":
 					d.dodajKategorijuIzKonzole();
 					break;
+				case "7":
+					System.out.println("Unesite broj telefona kupca za kreiranje kartice:");
+					String brojTelefona = scanner.nextLine();
+					if(DatabaseConnection.validanBrojTelefona(brojTelefona)) {
+						System.out.println("Nevalidan broj telefona.");
+						return;
+					}
+					Integer kupacId = d.getKupacByBroj(brojTelefona);
+					if(d.kreirajKarticuZaKupca(kupacId)){
+						System.out.println("Kartica je kreirana.");
+						return;
+					}
+					break;
 				case "0":
 					exit = true;
 					System.out.println("Izlaz iz programa.");
@@ -107,9 +114,11 @@ public class Main {
 					System.out.println("Nepoznata opcija u podmeniju (Dodaj).");
 			}
 		}
+
 	}
 
-	private static void showUpdateSubMenu(Scanner scanner) {
+	private static void showUpdateSubMenu() {
+		Scanner scanner = new Scanner(System.in);
 		DatabaseConnection d = new DatabaseConnection("jdbc:mysql://localhost:3306/knjizara", "root", "");
 
 		boolean exit = false;
@@ -117,10 +126,12 @@ public class Main {
 			System.out.println("\nŠta hoćete da ažurirate?");
 			System.out.println("1) Autore knjige");
 			System.out.println("2) Informacije o knjizi");
-			System.out.println("3) Podatke o autoru");
-			System.out.println("4) Izdavača");
+			System.out.println("3) Poveži distributera i izdavača");
+			System.out.println("4) Deaktiviraj karticu");
 			System.out.println("5) Distributera");
-			System.out.println("6) Kupca");
+			System.out.println("6) Izdavača");
+			System.out.println("7) Autora");
+			System.out.println("8) Kupca");
 			System.out.println("0) Izlaz");
 			System.out.print("Izbor: ");
 
@@ -138,18 +149,56 @@ public class Main {
 					}
 					break;
 				case "2":
-					System.out.println("Unesite ISBN knjige za ažuriranje informacija:");
-					String isbnZaAzuriranje = scanner.nextLine();
-//					d.updateKnjigaInfo(isbnZaAzuriranje, scanner);
+					d.azurirajKnjiguIzKonzole();
 
 					break;
 				case "3":
+					d.spojiDistributeraIIzdavaca();
 					break;
 				case "4":
+					System.out.println("Unesite broj telefona kupca za deaktiviranje kartice:");
+					String brojTelefonaZaDeaktivacijuKartice = scanner.nextLine();
+					if(DatabaseConnection.validanBrojTelefona(brojTelefonaZaDeaktivacijuKartice)) {
+						System.out.println("Nevalidan broj telefona.");
+						return;
+					}
+					Integer kupacId = d.getKupacByBroj(brojTelefonaZaDeaktivacijuKartice);
+					d.deaktivirajKarticu(kupacId);
+
 					break;
 				case "5":
+					System.out.println("Unesite ime distributera za ažuriranje:");
+					String imeDistributera = scanner.nextLine();
+					if(d.azurirajDistributera(imeDistributera,scanner)) {
+						System.out.println("Uspešno ažuriranje.");
+					}
+
 					break;
 				case "6":
+					System.out.println("Unesite ime izdavača za ažuriranje:");
+					String imeIzdavaca = scanner.nextLine();
+					if(d.azurirajIzdavaca(imeIzdavaca,scanner)){
+						System.out.println("Uspešno ažuriranje.");
+					}
+
+					break;
+				case "7":
+					System.out.println("Unesite ime autora za ažuriranje:");
+					String ime = scanner.nextLine();
+					System.out.println("Unesite prezime autora za ažuriranje:");
+					String prezime = scanner.nextLine();
+					d.azurirajAutora(ime, prezime,scanner);
+					break;
+				case "8":
+					System.out.println("Unesite broj telefona kupca za ažuriranje:");
+					String brojTelefonaZaAzuriranje = scanner.nextLine();
+					if(DatabaseConnection.validanBrojTelefona(brojTelefonaZaAzuriranje)) {
+						System.out.println("Nevalidan broj telefona.");
+						return;
+					}
+					if(d.azurirajKupca(brojTelefonaZaAzuriranje,scanner)){
+						System.out.println("Uspešno ažuriranje.");
+					}
 					break;
 				case "0":
 					exit = true;
@@ -161,97 +210,81 @@ public class Main {
 		}
 	}
 
+	private static void showDisplaySubMenu() {
+		Scanner scanner = new Scanner(System.in);
+		DatabaseConnection d = new DatabaseConnection("jdbc:mysql://localhost:3306/knjizara", "root", "");
 
-//	private static void showDisplaySubMenu(Scanner scanner) {
-//		DatabaseConnection d = new DatabaseConnection("jdbc:mysql://localhost:3306/knjizara", "root", "");
-//
-//		boolean exit = false;
-//		while (!exit) {
-//			System.out.println("\nŠta želite da prikažete?");
-//			System.out.println("1) Sve knjige");
-//			System.out.println("2) Informacije o određenoj knjizi");
-//			System.out.println("3) Sve autore");
-//			System.out.println("4) Sve izdavače");
-//			System.out.println("5) Sve kupce");
-//			System.out.println("0) Izlaz");
-//			System.out.print("Izbor: ");
-//
-//			String subChoice = scanner.nextLine();
-//
-//			switch (subChoice) {
-//				case "1":
-//					d.prikaziSveKnjige();
-//					break;
-//				case "2":
-//					System.out.println("Unesite ISBN ili naziv knjige:");
-//					String knjigaInfo = scanner.nextLine();
-//					d.prikaziInformacijeOKnjizi(knjigaInfo);
-//					break;
-//				case "3":
-//					d.prikaziSveAutore();
-//					break;
-//				case "4":
-//					d.prikaziSveIzdavace();
-//					break;
-//				case "5":
-//					d.prikaziSveKupce();
-//					break;
-//				case "0":
-//					exit = true;
-//					System.out.println("Izlaz iz podmenija za prikaz.");
-//					break;
-//				default:
-//					System.out.println("Nepoznata opcija, pokušajte ponovo.");
-//			}
-//		}
-//	}
-//
-//	private static void showDeleteSubMenu(Scanner scanner) {
-//		DatabaseConnection d = new DatabaseConnection("jdbc:mysql://localhost:3306/knjizara", "root", "");
-//
-//		boolean exit = false;
-//		while (!exit) {
-//			System.out.println("\nŠta želite da obrišete?");
-//			System.out.println("1) Knjigu");
-//			System.out.println("2) Autora");
-//			System.out.println("3) Izdavača");
-//			System.out.println("4) Distributera");
-//			System.out.println("5) Kupca");
-//			System.out.println("0) Izlaz");
-//			System.out.print("Izbor: ");
-//
-//			String subChoice = scanner.nextLine();
-//
-//			switch (subChoice) {
-//				case "1":
-//					System.out.println("Unesite ISBN knjige za brisanje:");
-//					String isbn = scanner.nextLine();
-//					d.obrisiKnjigu(isbn);
-//					break;
-//				case "2":
-//					System.out.println("Unesite ime i prezime autora:");
-//					String ime = scanner.nextLine();
-//					String prezime = scanner.nextLine();
-//					d.obrisiAutora(ime, prezime);
-//					break;
-//				case "3":
-//					d.obrisiIzdavacaIzKonzole();
-//					break;
-//				case "4":
-//					d.obrisiDistributeraIzKonzole();
-//					break;
-//				case "5":
-//					d.obrisiKupcaIzKonzole();
-//					break;
-//				case "0":
-//					exit = true;
-//					System.out.println("Izlaz iz podmenija za brisanje.");
-//					break;
-//				default:
-//					System.out.println("Nepoznata opcija, pokušajte ponovo.");
-//			}
-//		}
-//	}
+		boolean exit = false;
+		while (!exit) {
+			System.out.println("\nŠta želite da prikažete?");
+			System.out.println("1) Sve knjige na stanju");
+			System.out.println("2) Informacije o određenoj knjizi");
+			System.out.println("3) Svi računi kupca koji imaju cenu veću od prosečne");
+			System.out.println("4) Prikaz računa u mesecu");
+			System.out.println("5) Prikaz računa po mesecima");
+
+			System.out.println("0) Izlaz");
+			System.out.print("Izbor: ");
+
+			String subChoice = scanner.nextLine();
+
+			switch (subChoice) {
+				case "1":
+					d.prikaziSveKnjige();
+					break;
+				case "2":
+					d.prikaziKnjiguPoISBN();
+					break;
+				case "3":
+					d.prikaziRacuneSaCenomVecomOdProsecne();
+					break;
+				case "4":
+					d.prikaziRacuneUMesecu();
+					break;
+				case "5":
+					d.prikaziRacunePoMesecima();
+					break;
+				case "0":
+					exit = true;
+					System.out.println("Izlaz iz podmenija za prikaz.");
+
+					break;
+				default:
+					System.out.println("Nepoznata opcija, pokušajte ponovo.");
+			}
+		}
+	}
+
+	private static void showDeleteSubMenu() {
+		Scanner scanner = new Scanner(System.in);
+		DatabaseConnection d = new DatabaseConnection("jdbc:mysql://localhost:3306/knjizara", "root", "");
+
+		boolean exit = false;
+		while (!exit) {
+			System.out.println("\nŠta želite da obrišete?");
+			System.out.println("1) Knjigu sa stanja");
+			System.out.println("2) Ukloni neaktivne kartice:");
+			System.out.println("0) Izlaz");
+			System.out.print("Izbor: ");
+
+			String subChoice = scanner.nextLine();
+
+			switch (subChoice) {
+				case "1":
+					d.ukloniKnjigu();
+					break;
+				case "2":
+					d.obrisiNeaktivneVipKartice();
+					break;
+				case "0":
+					exit = true;
+					System.out.println("Izlaz iz podmenija za brisanje.");
+					break;
+				default:
+					System.out.println("Nepoznata opcija, pokušajte ponovo.");
+			}
+		}
+	}
 
 
 }
