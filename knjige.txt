@@ -1,0 +1,3 @@
+ISBN,Naslov,Broj stranica,Cena,Distributer,Izdavac,Kategorija,Autori
+9780987654321,Prokleta avlija,250,12.99,MegaKnjiga,Oktoih,Književnost,Ivo Andrić
+9781122334455,Zločin i kazna,400,20.50,MegaKnjiga,Oktoih,Književnost,Fjodor Dostojevski

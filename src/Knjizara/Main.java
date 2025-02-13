@@ -20,6 +20,7 @@ public class Main {
 			System.out.println("  3) Prikaži");
 			System.out.println("  4) Obriši");
 			System.out.println("  5) Izdaj račun");
+			System.out.println("  6) Import knjiga iz fajla");
 			System.out.println("  0) Izlaz");
 			System.out.println("=====================================");
 			System.out.print("Izaberite opciju: ");
@@ -42,6 +43,9 @@ public class Main {
 					break;
 				case "5":
 					d.izdajRacunIzKonzole();
+					break;
+				case "6":
+					d.importKnjigaIzFajla();
 					break;
 				case "0":
 					exit = true;
