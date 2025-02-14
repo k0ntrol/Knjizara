@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 
@@ -41,6 +42,13 @@ public class DatabaseConnection {
 			System.out.println("Greska u zatvaranju konekcije");
 		}
 	}
+	private void close(ResultSet rs) {
+		try {
+			if (rs != null) rs.close();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
 
 
 
@@ -51,7 +59,6 @@ public class DatabaseConnection {
 		Connection conn = open();
 		if (conn == null) return null;
 
-		// Initialize resources
 		ResultSet rs = null;
 		String checkSql = "SELECT id FROM adresa WHERE grad = ? AND drzava_id = ? AND naziv_ulice = ? AND broj_ulice = ? AND postanski_broj = ?";
 		try (PreparedStatement checkPs = conn.prepareStatement(checkSql)) {
@@ -69,10 +76,9 @@ public class DatabaseConnection {
 			e.printStackTrace();
 			return null;
 		} finally {
-			close(rs); // Close ResultSet
+			close(rs);
 		}
 
-		// If the address does not exist, insert a new one
 		String insertSql = "INSERT INTO adresa (grad, drzava_id, naziv_ulice, broj_ulice, postanski_broj) VALUES (?, ?, ?, ?, ?)";
 		try (PreparedStatement insertPs = conn.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
 			insertPs.setString(1, grad);
@@ -98,13 +104,7 @@ public class DatabaseConnection {
 		return null;
 	}
 
-	private void close(ResultSet rs) {
-		try {
-			if (rs != null) rs.close();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-	}
+
 
 
 	public Integer insertIzdavac(String ime, int godinaOsnivanja, Scanner scanner) {
@@ -240,7 +240,6 @@ public class DatabaseConnection {
 		if (conn == null) return;
 
 		try {
-			conn.setAutoCommit(false); // Počinjemo transakciju
 
 			// Unos osnovnih podataka
 			System.out.println("Unesite ime kupca:");
@@ -284,7 +283,6 @@ public class DatabaseConnection {
 			// Dodavanje kupca sa transakcionom kontrolom
 			Integer kupacId = insertKupac(ime, prezime, brojTelefona, vrstaKupcaId, scanner);
 			if (kupacId == null) {
-				conn.rollback();
 				System.out.println("Greška pri dodavanju kupca!");
 				return;
 			}
@@ -320,21 +318,12 @@ public class DatabaseConnection {
 		}
 	}
 
-
-
-
-	/**
-	 * Ubacuje kupca u tabelu "kupac" i vraća ID (auto-increment), ili -1 ako dođe do greške.
-	 * Primer pretpostavlja da tabela kupac ima kolone:
-	 *   id (PRIMARY KEY, auto-increment),
-	 *   ime, prezime, broj_telefona, vrsta_kupca_id
-	 */
 	private Integer insertKupac(String ime, String prezime, String brojTelefona, int vrstaKupcaId, Scanner scanner) {
 		Connection conn = open();
 		if (conn == null) return null;
 
 		try {
-			conn.setAutoCommit(false); // Počni transakciju
+			conn.setAutoCommit(false);
 
 			// Unos adrese
 			System.out.println("Unesite grad:");
@@ -377,7 +366,7 @@ public class DatabaseConnection {
 
 				ResultSet rs = ps.getGeneratedKeys();
 				if (rs.next()) {
-					conn.commit(); // Potvrdi transakciju
+					conn.commit();
 					return rs.getInt(1);
 				} else {
 					conn.rollback();
@@ -386,7 +375,7 @@ public class DatabaseConnection {
 			}
 		} catch (SQLException e) {
 			try {
-				conn.rollback(); // Rollback ako dodje do greške
+				conn.rollback();
 			} catch (SQLException ex) {
 				ex.printStackTrace();
 			}
@@ -447,7 +436,6 @@ public class DatabaseConnection {
 			return null;
 		}
 
-		// SQL upit za dodavanje distributera
 		String sql = "INSERT INTO distributer (ime, broj_telefona, adresa_id) VALUES (?, ?, ?)";
 		try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 			ps.setString(1, ime);
@@ -517,11 +505,10 @@ public class DatabaseConnection {
 		Connection conn = open();
 		if (conn == null) return;
 
-		// SQL upit za prikazivanje potkategorija za odabranu glavnu kategoriju
 		String sql = "SELECT * FROM kategorija WHERE roditelj_id = ?";
 
 		try (PreparedStatement ps = conn.prepareStatement(sql)) {
-			ps.setInt(1, roditeljId); // Postavljamo roditelj_id na izabranu glavnu kategoriju
+			ps.setInt(1, roditeljId);
 
 			try (ResultSet rs = ps.executeQuery()) {
 				System.out.println("\nPotkategorije za glavnu kategoriju:");
@@ -644,8 +631,6 @@ public class DatabaseConnection {
 		System.out.println("Unesite ISBN knjige koju želite da ažurirate:");
 		String ISBN = scanner.nextLine();
 
-		// Proverite da li knjiga postoji
-
 		if (!knjigaPostoji(ISBN) ) {
 			System.out.println("Knjiga ne postoji.");
 			return;
@@ -659,7 +644,7 @@ public class DatabaseConnection {
 		double cena = scanner.nextDouble();
 		scanner.nextLine();
 
-		// Odabir distributera, izdavača, kategorije putem getOrCreateEntitet
+		// Odabir distributera, izdavača, kategorije
 		System.out.println("Unesite ime distributera:");
 		String distributerIme = scanner.nextLine();
 		Integer distributerId = getOrCreateEntitet("distributer", "ime", distributerIme, scanner);
@@ -694,19 +679,16 @@ public class DatabaseConnection {
 		String novoIme = scanner.nextLine();
 		System.out.println("Unesite novi prezime autora:");
 		String noviPrezime = scanner.nextLine();
-		// SQL upit za ažuriranje autora
+
 		String sql = "UPDATE autor SET ime = ?, prezime = ? WHERE id = ?";
 
 		try (Connection conn = open(); //
-			 PreparedStatement ps = conn.prepareStatement(sql)) { // I za PreparedStatement
+			 PreparedStatement ps = conn.prepareStatement(sql)) {
 
-			// Postavljanje parametara u SQL upit
-			ps.setString(1, novoIme); // Novo ime
-			ps.setString(2, noviPrezime); // Novo prezime
-			ps.setInt(3, autorId); // ID autora
+			ps.setString(1, novoIme);
+			ps.setString(2, noviPrezime);
+			ps.setInt(3, autorId);
 
-
-			// Izvršavanje upita i provera broja ažuriranih redova
 			int rowsAffected = ps.executeUpdate();
 			if (rowsAffected > 0) {
 				System.out.println("Autor je uspešno ažuriran.");
@@ -786,7 +768,7 @@ public class DatabaseConnection {
 		System.out.println("Unesite novi broj telefona za distributera:");
 		String noviBrojTelefona = scanner.nextLine().trim();
 		if(validanBrojTelefona(noviBrojTelefona)) {
-			System.out.println("Niste unesli validan broj telefona za distributera.");
+			System.out.println("Niste uneli validan broj telefona za distributera.");
 			return false;
 		}
 
@@ -829,7 +811,7 @@ public class DatabaseConnection {
 		}
 	}
 	public boolean azurirajKupca(String brojTelefona, Scanner scanner) {
-		// Validacija broja telefona
+
 		if (validanBrojTelefona(brojTelefona)) {
 			System.out.println("Niste uneli validan broj telefona za kupca.");
 			return false;
@@ -849,7 +831,7 @@ public class DatabaseConnection {
 		String novoPrezime = scanner.nextLine();
 		System.out.println("Unesite vrstu kupca: ('1' za Standardni, '2' za VIP)");
 		int novaVrstaKupca = scanner.nextInt();
-		scanner.nextLine(); // Očisti bafer
+		scanner.nextLine();
 
 		if (novaVrstaKupca != 1 && novaVrstaKupca != 2) {
 			System.out.println("Vrsta kupca mora biti '1' ili '2'.");
@@ -857,7 +839,7 @@ public class DatabaseConnection {
 		}
 
 		// Ako kupac postaje VIP, proveri i ažuriraj VIP karticu
-		if (novaVrstaKupca == 2) {
+		if (novaVrstaKupca == 1) {
 			if (imaAktivnuKarticu(kupacId)) {
 				// Ako već ima aktivnu karticu, deaktiviraj je
 				if (!deaktivirajKarticu(kupacId)) {
@@ -865,7 +847,8 @@ public class DatabaseConnection {
 					return false;
 				}
 			}
-			// Kreiraj novu VIP karticu
+
+		}else{
 			if (!kreirajKarticuZaKupca(kupacId)) {
 				System.out.println("Greška pri kreiranju nove VIP kartice.");
 				return false;
@@ -899,10 +882,8 @@ public class DatabaseConnection {
 			return false;
 		}
 
-		// SQL upit za ažuriranje kupca
 		String sql = "UPDATE kupac SET ime = ?, prezime = ?, broj_telefona = ?, vrsta_kupca_id = ?, adresa_id = ? WHERE id = ?";
 
-		// Otvaranje konekcije i rad sa bazom
 		try (Connection conn = open()) {
 			if (conn == null) return false;
 
@@ -925,8 +906,6 @@ public class DatabaseConnection {
 					}
 				}
 			}
-
-			// Ažuriranje kupca
 			try (PreparedStatement ps = conn.prepareStatement(sql)) {
 				ps.setString(1, novoIme);
 				ps.setString(2, novoPrezime);
@@ -1018,7 +997,7 @@ public class DatabaseConnection {
 		System.out.print("Izbor: ");
 		String tip = scanner.nextLine();
 		if (!tip.equals("1") && !tip.equals("2")) {
-			System.out.println("Neispravan izbor!");
+			System.out.println("Nevalidan izbor!");
 			return;
 		}
 
@@ -1053,7 +1032,6 @@ public class DatabaseConnection {
 			}
 		}
 
-		// Ubacivanje u bazu
 		Integer kategorijaId = insertKategorija(naziv, roditeljId);
 
 		if (kategorijaId != null) {
@@ -1142,7 +1120,7 @@ public class DatabaseConnection {
 
 				// Provera ako je potkategorija null i postavljanje podrazumevane vrednosti
 				if (potkategorija == null) {
-					potkategorija = "Nema potkategorije";
+					potkategorija = "N/A";
 				}
 
 				// Ispis podataka za svaku knjigu
@@ -1296,7 +1274,6 @@ public class DatabaseConnection {
 			return;
 		}
 
-		// Ako veza ne postoji, tek tada pokušaj unos
 		try (PreparedStatement insertStmt = conn.prepareStatement(insertSql)) {
 			insertStmt.setInt(1, autorId);
 			insertStmt.setInt(2, knjigaId);
@@ -1350,7 +1327,6 @@ public class DatabaseConnection {
 			return false;
 		}
 
-		// Ako veza ne postoji, tek tada pokušaj unos
 		try (PreparedStatement insertStmt = conn.prepareStatement(insertSql)) {
 			insertStmt.setInt(1, distributerId);
 			insertStmt.setInt(2, izdavacId);
@@ -1629,7 +1605,6 @@ public class DatabaseConnection {
 		if (conn == null) return;
 
 		try {
-			// SQL upit za prikaz računa sa cenom većom od prosečne
 			String query = "SELECT r.id AS racun_id, r.datum, r.ukupna_cena, vk.naziv AS vrsta_kupovine, " +
 					"p.ime AS prodavac_ime, p.prezime AS prodavac_prezime, a.grad AS adresa_grad, " +
 					"a.naziv_ulice AS adresa_ulica, a.broj_ulice AS adresa_broj, " +
@@ -1654,7 +1629,6 @@ public class DatabaseConnection {
 
 			boolean imaRacuna = false;
 
-// Iteracija kroz rezultate
 			while (rs.next()) {
 				imaRacuna = true; // Postoji najmanje jedan rezultat
 
@@ -1669,11 +1643,9 @@ public class DatabaseConnection {
 				String adresaBroj = rs.getString("adresa_broj");
 				String adresaPostanskiBroj = rs.getString("adresa_postanski_broj");
 
-				// Fallback za prodavca i adresu
 				String prodavac = (prodavacIme != null) ? prodavacIme + " " + prodavacPrezime : "N/A";
 				String adresa = (adresaGrad != null) ? adresaUlica + " " + adresaBroj + ", " + adresaGrad + " " + adresaPostanskiBroj : "N/A";
 
-				// Formatiran ispis svake linije
 				System.out.printf(
 						"%-10d %-15s €%-14.2f %-20s %-20s %-30s\n",
 						racunId,
@@ -1710,25 +1682,22 @@ public class DatabaseConnection {
 			return;
 		}
 
-		// Pronalaženje ID-a kupca na osnovu broja telefona
 		Integer kupacId = getIdByName("kupac", "broj_telefona", brojTelefona);
 		if (kupacId == null) {
 			System.out.println("Kupac sa brojem telefona '" + brojTelefona + "' ne postoji.");
 			return;
 		}
 
-		// Unos meseca i godine
 		System.out.println("Unesite mesec (1-12):");
 		int mesec = scanner.nextInt();
-		System.out.println("Unesite godinu (npr. 2023):");
+		System.out.println("Unesite godinu (pr. 2023):");
 		int godina = scanner.nextInt();
-		scanner.nextLine(); // Očisti bafer
+		scanner.nextLine();
 
 		Connection conn = open();
 		if (conn == null) return;
 
 		try {
-			// SQL upit za prikaz računa u određenom mesecu i godini
 			String query = "SELECT r.id AS racun_id, r.datum, r.ukupna_cena, vk.naziv AS vrsta_kupovine, " +
 					"p.ime AS prodavac_ime, p.prezime AS prodavac_prezime, a.grad AS adresa_grad, " +
 					"a.naziv_ulice AS adresa_ulica, a.broj_ulice AS adresa_broj, " +
@@ -1750,7 +1719,6 @@ public class DatabaseConnection {
 
 			boolean imaRacuna = false;
 
-			// Provera i ispis računa
 			while (rs.next()) {
 				imaRacuna = true;
 
@@ -1924,18 +1892,17 @@ public class DatabaseConnection {
 		if (conn == null) return;
 
 		try {
-			// Isključi auto-commit za upravljanje transakcijama
 			conn.setAutoCommit(false);
 
 
-			// 2. Brisanje povezanih autora iz tabele `autor_knjiga`
+			//  Brisanje povezanih autora iz tabele `autor_knjiga`
 			String deleteAutorKnjigaQuery = "DELETE FROM autor_knjiga WHERE knjiga_id = ?";
 			try (PreparedStatement autorKnjigaStmt = conn.prepareStatement(deleteAutorKnjigaQuery)) {
 				autorKnjigaStmt.setInt(1, knjigaId);
 				autorKnjigaStmt.executeUpdate();
 			}
 
-			// 3. Brisanje knjige iz tabele `knjiga`
+			// Brisanje knjige iz tabele `knjiga`
 			String deleteKnjigaQuery = "DELETE FROM knjiga WHERE id = ?";
 			try (PreparedStatement knjigaStmt = conn.prepareStatement(deleteKnjigaQuery)) {
 				knjigaStmt.setInt(1, knjigaId);
@@ -1948,7 +1915,6 @@ public class DatabaseConnection {
 				}
 			}
 
-			// Potvrdi transakciju
 			conn.commit();
 
 		} catch (SQLException e) {
@@ -1972,126 +1938,192 @@ public class DatabaseConnection {
 		Scanner scanner = new Scanner(System.in);
 		System.out.println("Unesite naziv fajla sa kojim se importuju knjige:");
 		String putanjaDoFajla = scanner.nextLine().trim();
-		Connection conn = open();
-		if (conn == null) return;
+        Connection conn = open();
+        if (conn == null) return;
 
-		try {
-			// Učitaj CSV fajl
-			BufferedReader reader = new BufferedReader(new FileReader(putanjaDoFajla));
-			String linija;
+        try {
+            BufferedReader reader = new BufferedReader(new FileReader(putanjaDoFajla));
+            String linija;
 
-			// Preskoči header (prvu liniju)
-			reader.readLine();
+            // Preskoči header
+            reader.readLine();
 
-			// SQL upit za unos knjige
-			String insertKnjigaQuery = "INSERT INTO knjiga (ISBN, naslov, broj_stranica, cena, distributer_id, izdavac_id, kategorija_id) " +
-					"VALUES (?, ?, ?, ?, ?, ?, ?)";
-			PreparedStatement knjigaStmt = conn.prepareStatement(insertKnjigaQuery, Statement.RETURN_GENERATED_KEYS);
+            String insertKnjigaQuery = "INSERT INTO knjiga (ISBN, naslov, broj_stranica, cena, distributer_id, izdavac_id, kategorija_id) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?)";
+            PreparedStatement knjigaStmt = conn.prepareStatement(insertKnjigaQuery, Statement.RETURN_GENERATED_KEYS);
 
-			// SQL upit za unos autora u tabelu autor_knjiga
-			String insertAutorKnjigaQuery = "INSERT INTO autor_knjiga (autor_id, knjiga_id) VALUES (?, ?)";
-			PreparedStatement autorKnjigaStmt = conn.prepareStatement(insertAutorKnjigaQuery);
+            String insertAutorKnjigaQuery = "INSERT INTO autor_knjiga (autor_id, knjiga_id) VALUES (?, ?)";
+            PreparedStatement autorKnjigaStmt = conn.prepareStatement(insertAutorKnjigaQuery);
 
-			// Pročitaj fajl liniju po liniju
-			while ((linija = reader.readLine()) != null) {
-				String[] podaci = linija.split(","); // Podeli liniju na kolone
+            while ((linija = reader.readLine()) != null) {
+                String[] podaci = linija.split(",");
 
-				// Proveri da li linija ima tačno 8 kolona
-				if (podaci.length != 8) {
-					System.out.println("Nevažeći format linije: " + linija);
-					continue;
-				}
+                if (podaci.length != 8) {
+                    System.out.println("Nevažeći format linije: " + linija);
+                    continue;
+                }
 
-				// Parsiraj podatke iz CSV-a
-				String isbn = podaci[0].trim();
-				String naslov = podaci[1].trim();
-				int brojStranica = Integer.parseInt(podaci[2].trim());
-				BigDecimal cena = new BigDecimal(podaci[3].trim());
-				String distributerNaziv = podaci[4].trim();
-				String izdavacNaziv = podaci[5].trim();
-				String kategorijaNaziv = podaci[6].trim();
-				String autori = podaci[7].trim();
+                // Parsiranje podataka iz CSV-a
+                String isbn = podaci[0].trim();
+                String naslov = podaci[1].trim();
+                int brojStranica = Integer.parseInt(podaci[2].trim());
+                BigDecimal cena = new BigDecimal(podaci[3].trim());
+                String distributerNaziv = podaci[4].trim();
+                String izdavacNaziv = podaci[5].trim();
+                String kategorijaNaziv = podaci[6].trim();
+                String autoriString = podaci[7].trim();
 
-				// Pronađi ID-jeve na osnovu imena
-				Integer distributerId = getIdByName("distributer", "ime", distributerNaziv);
-				Integer izdavacId = getIdByName("izdavac", "ime", izdavacNaziv);
-				Integer kategorijaId = getIdByName("kategorija", "naziv", kategorijaNaziv);
+                Integer distributerId = getIdByName("distributer", "ime", distributerNaziv);
+                Integer izdavacId = getIdByName("izdavac", "ime", izdavacNaziv);
+                Integer kategorijaId = getIdByName("kategorija", "naziv", kategorijaNaziv);
 
-				// Proveri da li su svi ID-jevi pronađeni
-				if (distributerId == null || izdavacId == null || kategorijaId == null) {
-					System.out.println("Nije moguće pronaći ID za distributera, izdavača ili kategoriju u liniji: " + linija);
-					continue;
-				}
+                if (distributerId == null || izdavacId == null || kategorijaId == null) {
+                    System.out.println("Nije moguće pronaći ID za distributera, izdavača ili kategoriju u liniji: " + linija);
+                    continue;
+                }
 
-				// Postavi vrednosti u SQL upit za knjigu
-				knjigaStmt.setString(1, isbn);
-				knjigaStmt.setString(2, naslov);
-				knjigaStmt.setInt(3, brojStranica);
-				knjigaStmt.setBigDecimal(4, cena);
-				knjigaStmt.setInt(5, distributerId);
-				knjigaStmt.setInt(6, izdavacId);
-				knjigaStmt.setInt(7, kategorijaId);
+                // Unos knjige
+                knjigaStmt.setString(1, isbn);
+                knjigaStmt.setString(2, naslov);
+                knjigaStmt.setInt(3, brojStranica);
+                knjigaStmt.setBigDecimal(4, cena);
+                knjigaStmt.setInt(5, distributerId);
+                knjigaStmt.setInt(6, izdavacId);
+                knjigaStmt.setInt(7, kategorijaId);
+                knjigaStmt.executeUpdate();
 
-				// Izvrši unos knjige i dobij generisani ID
-				knjigaStmt.executeUpdate();
-				ResultSet rs = knjigaStmt.getGeneratedKeys();
-				int knjigaId = -1;
-				if (rs.next()) {
-					knjigaId = rs.getInt(1);
-				}
+                ResultSet rs = knjigaStmt.getGeneratedKeys();
+                int knjigaId = -1;
+                if (rs.next()) {
+                    knjigaId = rs.getInt(1);
+                }
 
-				// Dodaj autore u tabelu autor_knjiga
-				String[] imenaAutora = autori.split(",");
-				for (String imeAutora : imenaAutora) {
-					imeAutora = imeAutora.trim();
+                // Ako knjiga nije uspešno dodata, preskoči dodavanje autora
+                if (knjigaId == -1) {
+                    System.out.println("Greška pri unosu knjige: " + naslov);
+                    continue;
+                }
 
-					// Razdvoji ime i prezime
-					String[] imePrezime = imeAutora.split(" ");
-					if (imePrezime.length != 2) {
-						System.out.println("Nevažeći format imena autora: " + imeAutora);
-						continue;
-					}
+                // Parsiranje i dodavanje više autora
+                String[] autori = autoriString.split(";");
+                for (String autor : autori) {
+                    autor = autor.trim().replace("\"", ""); // Ukloni nepotrebne navodnike
 
-					String ime = imePrezime[0].trim();
-					String prezime = imePrezime[1].trim();
+                    // Proveri da li je format validan
+                    String[] imePrezime = autor.split(" ");
+                    if (imePrezime.length < 2) {
+                        System.out.println("Nevažeći format imena autora: " + autor);
+                        continue;
+                    }
 
-					// Pronađi ID autora na osnovu imena i prezimena
-					Integer autorId = getAutorIdByImePrezime(ime, prezime);
-					if (autorId == null) {
-						System.out.println("Autor '" + imeAutora + "' nije pronađen u bazi.");
-						continue;
-					}
+                    // Spajanje prvog imena i prezimena ako autor ima više od dva dela u imenu
+                    String ime = imePrezime[0].trim();
+                    String prezime = String.join(" ", Arrays.copyOfRange(imePrezime, 1, imePrezime.length)).trim();
 
-					// Postavi vrednosti u SQL upit za autor_knjiga
-					autorKnjigaStmt.setInt(1, autorId);
-					autorKnjigaStmt.setInt(2, knjigaId);
-					autorKnjigaStmt.executeUpdate();
-				}
-			}
+                    Integer autorId = getAutorIdByImePrezime(ime, prezime);
+                    if (autorId == null) {
+                        System.out.println("Autor '" + autor + "' nije pronađen u bazi.");
+                        continue;
+                    }
 
-			System.out.println("Knjige su uspešno uvezene iz fajla.");
+                    // Dodavanje autora u autor_knjiga tabelu
+                    autorKnjigaStmt.setInt(1, autorId);
+                    autorKnjigaStmt.setInt(2, knjigaId);
+                    autorKnjigaStmt.executeUpdate();
+                }
+            }
 
-			// Zatvori resurse
-			reader.close();
-			knjigaStmt.close();
-			autorKnjigaStmt.close();
+            System.out.println("Knjige su uspešno uvezene iz fajla.");
 
-		} catch (FileNotFoundException e) {
-			System.out.println("Fajl nije pronađen: " + putanjaDoFajla);
-		} catch (IOException e) {
-			System.out.println("Greška pri čitanju fajla: " + e.getMessage());
-		} catch (SQLException e) {
-			System.out.println("Greška pri unosu podataka u bazu: " + e.getMessage());
-		} catch (NumberFormatException e) {
-			System.out.println("Nevažeći format broja u fajlu: " + e.getMessage());
-		} finally {
-			close(conn);
-		}
+            reader.close();
+            knjigaStmt.close();
+            autorKnjigaStmt.close();
+
+        } catch (FileNotFoundException e) {
+            System.out.println("Fajl nije pronađen: " + putanjaDoFajla);
+        } catch (IOException e) {
+            System.out.println("Greška pri čitanju fajla: " + e.getMessage());
+        } catch (SQLException e) {
+            System.out.println("Greška pri unosu podataka u bazu: " + e.getMessage());
+        } catch (NumberFormatException e) {
+            System.out.println("Nevažeći format broja u fajlu: " + e.getMessage());
+        } finally {
+            close(conn);
+        }
 	}
 
+    public void obrisiKnjigeIzFajla() {
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Unesite naziv fajla sa kojim se obrisu knjige:");
+        String putanjaDoFajla = scanner.nextLine();
+        Connection conn = open();
+        if (conn == null) return;
+
+        try {
+            // Učitaj CSV fajl
+            BufferedReader reader = new BufferedReader(new FileReader(putanjaDoFajla));
+            String linija;
+
+            // SQL upit za brisanje iz autor_knjiga (mora pre knjiga)
+            String deleteAutorKnjigaQuery = "DELETE FROM autor_knjiga WHERE knjiga_id IN (SELECT id FROM knjiga WHERE ISBN = ?)";
+            PreparedStatement autorKnjigaStmt = conn.prepareStatement(deleteAutorKnjigaQuery);
+
+            // SQL upit za brisanje knjige
+            String deleteKnjigaQuery = "DELETE FROM knjiga WHERE ISBN = ?";
+            PreparedStatement knjigaStmt = conn.prepareStatement(deleteKnjigaQuery);
+
+            // Čitaj liniju po liniju
+            while ((linija = reader.readLine()) != null) {
+                String isbn = linija.trim();
+
+                if (isbn.isEmpty()) {
+                    System.out.println("Preskočena prazna linija.");
+                    continue;
+                }
+
+                // Proveri da li knjiga postoji pre brisanja
+                if (!knjigaPostoji(isbn)) {
+                    System.out.println("Knjiga sa ISBN " + isbn + " ne postoji u bazi.");
+                    continue;
+                }
+
+                // Prvo obriši iz tabele autor_knjiga
+                autorKnjigaStmt.setString(1, isbn);
+                autorKnjigaStmt.executeUpdate();
+
+                // Zatim obriši knjigu
+                knjigaStmt.setString(1, isbn);
+                int rowsDeleted = knjigaStmt.executeUpdate();
+
+                if (rowsDeleted > 0) {
+                    System.out.println("Knjiga sa ISBN " + isbn + " uspešno obrisana.");
+                } else {
+                    System.out.println("Greška pri brisanju knjige sa ISBN " + isbn);
+                }
+            }
+
+            System.out.println("Brisanje knjiga iz fajla završeno.");
+
+            // Zatvori resurse
+            reader.close();
+            autorKnjigaStmt.close();
+            knjigaStmt.close();
+
+        } catch (FileNotFoundException e) {
+            System.out.println("Fajl nije pronađen: " + putanjaDoFajla);
+        } catch (IOException e) {
+            System.out.println("Greška pri čitanju fajla: " + e.getMessage());
+        } catch (SQLException e) {
+            System.out.println("Greška pri brisanju podataka iz baze: " + e.getMessage());
+        } finally {
+            close(conn);
+        }
+    }
 
 
-	//-------------------------- Pomoćne metode
+
+
+    //-------------------------- Pomoćne metode
 
 	public boolean knjigaPostoji(String ISBN) {
 		Connection conn = open();
@@ -2170,7 +2202,7 @@ public class DatabaseConnection {
 			return false;
 		}
 	}
-	private boolean imaAktivnuKarticu(int kupacId) {
+	public boolean imaAktivnuKarticu(int kupacId) {
 		Connection conn = open();
 		if (conn == null) return false;
 		String sql = "SELECT COUNT(*) AS cnt FROM vip_kartica WHERE kupac_id = ? AND jeAktivna = true";

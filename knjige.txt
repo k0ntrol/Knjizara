@@ -1,3 +1,21 @@
-ISBN,Naslov,Broj stranica,Cena,Distributer,Izdavac,Kategorija,Autori
-9780987654321,Prokleta avlija,250,12.99,MegaKnjiga,Oktoih,Književnost,Ivo Andrić
-9781122334455,Zločin i kazna,400,20.50,MegaKnjiga,Oktoih,Književnost,Fjodor Dostojevski
+ISBN,Naslov,BrojStranica,Cena,Distributer,Izdavac,Kategorija,Autori
+9788652100011,Na Drini ćuprija,320,1999.99,Delfi,Laguna,Književnost,"Ivo Andrić"
+9788652100022,Tvrđava,280,1899.50,Mladinska knjiga,Vulkan,Roman,"Meša Selimović"
+9788652100033,Grobnica za Borisa Davidoviča,210,1599.00,Šahinpašić,Buybook,Književnost,"Danilo Kiš"
+9788652100044,Pisma iz Norveške,150,1299.99,Penguin Random House,Prosveta,Putovanja,"Isidora Sekulić"
+9788652100055,Balada Petrice Kerempuha,200,1499.00,Akademik,Oktoih,Poezija,"Miroslav Krleža"
+9788652100066,Nemam više vremena,180,1399.50,MegaKnjiga,Dereta,Lirika,"Desanka Maksimovic"
+9788652100077,Seobe,450,2199.99,BookStore,Štampar Makarije,Književnost,"Miloš Crnjanski"
+9788652100088,Zločin i kazna,560,2499.99,Delfi,Laguna,Filozofija,"Fjodor Dostojevski"
+9788652100099,Prokleta avlija,240,1799.99,Mladinska knjiga,Vulkan,Roman,"Ivo Andrić"
+9788652100100,Derviš i smrt,350,2099.99,Šahinpašić,Buybook,Književnost,"Meša Selimović"
+9788652100111,Enciklopedija mrtvih,280,1999.99,Penguin Random House,Prosveta,Književnost,"Danilo Kiš"
+9788652100122,Kritike,200,1599.99,Akademik,Oktoih,Filozofija,"Isidora Sekulić"
+9788652100133,Gospoda Glembajevi,220,1699.99,MegaKnjiga,Dereta,Književnost,"Miroslav Krleža"
+9788652100144,Traitre,190,1399.99,BookStore,Štampar Makarije,Poezija,"Desanka Maksimovic"
+9788652100155,Roman o Londonu,500,2599.99,Delfi,Laguna,Roman,"Miloš Crnjanski"
+9788652100166,Braća Karamazovi,800,2999.99,Mladinska knjiga,Vulkan,Filozofija,"Fjodor Dostojevski"
+9788652100177,Antologija savremene poezije,400,1899.99,Šahinpašić,Buybook,Poezija,"Desanka Maksimovic;Miroslav Krleža"
+9788652100188,Velika filozofska dela,550,2799.99,Penguin Random House,Prosveta,Filozofija,"Ivo Andrić;Meša Selimović;Danilo Kiš"
+9788652100199,Putovanja i zapisi,370,2199.99,Akademik,Oktoih,Putovanja,"Isidora Sekulić;Miloš Crnjanski"
+9788652100200,Psihologija i etika,290,1999.99,Delfi,Dereta,Etika,"Fjodor Dostojevski;Danilo Kiš"

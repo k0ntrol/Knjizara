@@ -105,6 +105,10 @@ public class Main {
 						return;
 					}
 					Integer kupacId = d.getKupacByBroj(brojTelefona);
+					if(d.imaAktivnuKarticu(kupacId)){
+						System.out.println("Kupac već ima aktivnu karticu.");
+						return;
+					}
 					if(d.kreirajKarticuZaKupca(kupacId)){
 						System.out.println("Kartica je kreirana.");
 						return;
@@ -268,6 +272,7 @@ public class Main {
 			System.out.println("\nŠta želite da obrišete?");
 			System.out.println("1) Knjigu sa stanja");
 			System.out.println("2) Ukloni neaktivne kartice:");
+            System.out.println("3) Obrisi knjige iz fajla:");
 			System.out.println("0) Izlaz");
 			System.out.print("Izbor: ");
 
@@ -280,6 +285,9 @@ public class Main {
 				case "2":
 					d.obrisiNeaktivneVipKartice();
 					break;
+                case "3":
+                    d.obrisiKnjigeIzFajla();
+                    break;
 				case "0":
 					exit = true;
 					System.out.println("Izlaz iz podmenija za brisanje.");
