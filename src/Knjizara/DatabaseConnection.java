@@ -1349,6 +1349,11 @@ public class DatabaseConnection {
 			// Unos broja telefona kupca
 			System.out.println("Unesite broj telefona kupca:");
 			String brojTelefona = scanner.nextLine().trim();
+			if(validanBrojTelefona(brojTelefona)){
+           
+                        System.out.println("Nevalidan broj telefona!")
+	                return;
+			} 
 
 			// Provera postojanja kupca
 			Integer kupacId = getIdByName("kupac", "broj_telefona", brojTelefona);
@@ -1466,7 +1471,7 @@ public class DatabaseConnection {
 					String naslov = knjigaRs.getString("naslov");
 
 					// Unos količine
-					int kolicina = 0; // Initial value
+					int kolicina = 0; 
 					while (kolicina <= 0) {
 						System.out.println("Unesite količinu za knjigu: " + naslov);
 						try {
@@ -1483,19 +1488,19 @@ public class DatabaseConnection {
 
 					// Unos dodatnog popusta
 
-					BigDecimal dodatniPopust; // Initialize the discount to zero
-					while (true) { // Validation loop
+					BigDecimal dodatniPopust; 
+					while (true) { 
 						System.out.println("Unesite dodatni popust (%) za knjigu: " + naslov);
 						try {
 							dodatniPopust = new BigDecimal(scanner.nextLine().trim());
 
-							// Validate that the discount is not negative
+							
 							if (dodatniPopust.compareTo(BigDecimal.ZERO) < 0) {
 								System.out.println("Greška: Popust ne može biti manji od 0. Pokušajte ponovo.");
 							} else {
-								// Optional: Limit the discount to a maximum of 100%
+								
 								dodatniPopust = dodatniPopust.min(new BigDecimal(100));
-								break; // Exit the loop if input is valid
+								break; 
 							}
 						} catch (NumberFormatException e) {
 							System.out.println("Greška: Unos mora biti broj. Pokušajte ponovo.");
@@ -1558,7 +1563,7 @@ public class DatabaseConnection {
 				BigDecimal popust = stavkeRs.getBigDecimal("popust");
 				BigDecimal cenaPoKomadu = stavkeRs.getBigDecimal("jedinicna_cena");
 
-				// Printing each row with centered or aligned values
+				
 				System.out.printf("%-35s %15d %15.2f %20.2f\n", naslov, kolicina, popust, cenaPoKomadu);
 			}
 			System.out.println("--------------------------------------------------------------------------------------------");
@@ -2346,7 +2351,7 @@ public class DatabaseConnection {
 			e.printStackTrace();
 		}
 		close(conn);
-		return null; // Ako ne pronađe ID, vrati null
+		return null;
 	}
 
 	private static void prepareStatementKnjiga(String ISBN, String naslov, int brojStranica, double cena, int distributerId, int izdavacId, int kategorijaId, PreparedStatement ps) throws SQLException {
@@ -2382,14 +2387,14 @@ public class DatabaseConnection {
 	}
 
 	public boolean deaktivirajKarticu(int kupacId) {
-		// SQL upit za deaktivaciju VIP kartice
+		
 		String sql = "UPDATE vip_kartica SET jeAktivna = false WHERE kupac_id = ?";
 
-		// Otvaranje konekcije i rad sa bazom
+	
 		try (Connection conn = open()) {
 			if (conn == null) return false;
 
-			// Izvršavanje upita za deaktivaciju kartice
+			
 			try (PreparedStatement ps = conn.prepareStatement(sql)) {
 				ps.setInt(1, kupacId);
 
@@ -2426,7 +2431,7 @@ public class DatabaseConnection {
 			e.printStackTrace();
 		}
 		close(conn);
-		return null; // Ako ne pronađe ID, vrati null
+		return null; 
 	}
 
 	public String getImePrezimeById(String table, String idColumnName, int id) {
@@ -2447,7 +2452,7 @@ public class DatabaseConnection {
 			e.printStackTrace();
 		}
 		close(conn);
-		return null; // Ako ne pronađe ime i prezime, vrati null
+		return null; 
 	}
 
 
