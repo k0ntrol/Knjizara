@@ -979,7 +979,7 @@ public class DatabaseConnection {
 
 		if (bookId != null) {
 			System.out.println("Knjiga uspešno dodata u bazu! ID: " + bookId);
-			dodajAutoreZaKnjigu(bookId, scanner);
+			dodajAutoreZaKnjigu(bookId);
 		} else {
 			System.out.println("Greška prilikom dodavanja knjige.");
 		}
@@ -1221,7 +1221,8 @@ public class DatabaseConnection {
 
 
 
-	public void dodajAutoreZaKnjigu(int knjigaId, Scanner scanner) {
+	public void dodajAutoreZaKnjigu(int knjigaId) {
+		Scanner scanner = new Scanner(System.in);
 		boolean dodajJos = true;
 		while (dodajJos) {
 			System.out.println("Unesite ime autora:");

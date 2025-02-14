@@ -150,7 +150,7 @@ public class Main {
 					if (knjigaId == null) {
 						System.out.println("Knjiga sa ISBN-om " + isbn + " ne postoji.");
 					} else {
-						d.dodajAutoreZaKnjigu(knjigaId, scanner);
+						d.dodajAutoreZaKnjigu(knjigaId);
 					}
 					break;
 				case "2":
