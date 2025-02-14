@@ -2054,7 +2054,7 @@ public class DatabaseConnection {
 
     public void obrisiKnjigeIzFajla() {
         Scanner scanner = new Scanner(System.in);
-        System.out.println("Unesite naziv fajla sa kojim se obrisu knjige:");
+        System.out.println("Unesite naziv fajla za brisanje knjiga:");
         String putanjaDoFajla = scanner.nextLine();
         Connection conn = open();
         if (conn == null) return;

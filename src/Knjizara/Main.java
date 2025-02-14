@@ -293,7 +293,7 @@ public class Main {
 					System.out.println("Izlaz iz podmenija za brisanje.");
 					break;
 				default:
-					System.out.println("Nepoznata opcija, pokušajte ponovo.");
+					System.out.println("Nepoznata opcija, pokušajte ponovo!");
 			}
 		}
 	}
