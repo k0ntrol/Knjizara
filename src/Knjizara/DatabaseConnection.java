@@ -1,5 +1,9 @@
 package Knjizara;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.*;
@@ -524,10 +528,11 @@ public class DatabaseConnection {
 
 				// Petlja za prikazivanje potkategorija
 				while (rs.next()) {
+					String potkategorijaId = rs.getString(1);
 					String nazivPotkategorije = rs.getString("naziv");
 
 					// Prikazivanje potkategorija sa njihovim ID-evima
-					System.out.println("- " + nazivPotkategorije);
+					System.out.println(potkategorijaId+". " + nazivPotkategorije);
 				}
 			}
 		} catch (SQLException e) {
@@ -676,6 +681,7 @@ public class DatabaseConnection {
 			System.out.println("Došlo je do greške pri ažuriranju podataka.");
 		}
 	}
+
 	public void azurirajAutora(String ime, String prezime, Scanner scanner) {
 		// Provera da li autor postoji
 		Integer autorId = getAutorIdByImePrezime(ime, prezime);
@@ -1166,38 +1172,30 @@ public class DatabaseConnection {
 		System.out.print("Unesite ISBN knjige: ");
 		String isbnInput = scanner.nextLine();
 
-		String sql = """
-                SELECT\s
-                    k.naslov,
-                    GROUP_CONCAT(DISTINCT CONCAT(a.ime, ' ', a.prezime)) AS autori,
-                    k.ISBN,
-                    k.broj_stranica AS "Broj stranica",
-                    k.cena AS "Cena €",
-                    d.ime AS Distributer,
-                    i.ime AS Izdavač,
-                    kk.naziv AS Kategorija,
-                    pk.naziv AS Potkategorija
-                FROM\s
-                    knjiga k
-                JOIN\s
-                    autor_knjiga ak ON k.id = ak.knjiga_id
-                JOIN\s
-                    autor a ON a.id = ak.autor_id
-                JOIN\s
-                    izdavac i ON k.izdavac_id = i.id
-                JOIN\s
-                    distributer d ON k.distributer_id = d.id
-                LEFT JOIN\s
-                    kategorija kk ON k.kategorija_id = kk.id
-                LEFT JOIN\s
-                    kategorija pk ON kk.id = pk.roditelj_id
-                WHERE\s
-                    k.ISBN = ?\s
-                GROUP BY\s
-                    k.id, k.naslov, k.ISBN, k.broj_stranica, k.cena, d.id, i.id, kk.naziv, pk.naziv
-                ORDER BY\s
-                    k.naslov ASC;
-                """;
+		String sql = "SELECT " +
+					 "k.naslov, " +
+					 "GROUP_CONCAT(DISTINCT CONCAT(a.ime, ' ', a.prezime)) AS autori, " +
+					 "k.ISBN, " +
+					 "k.broj_stranica AS \"Broj stranica\", " +
+					 "k.cena AS \"Cena €\", " +
+					 "d.ime AS Distributer, " +
+					 "i.ime AS Izdavač, " +
+					 "kk.naziv AS Kategorija, " +
+					 "gk.naziv AS GlavnaKategorija " +
+					 "FROM " +
+					 "knjiga k " +
+					 "JOIN autor_knjiga ak ON k.id = ak.knjiga_id " +
+					 "JOIN autor a ON a.id = ak.autor_id " +
+					 "JOIN izdavac i ON k.izdavac_id = i.id " +
+					 "JOIN distributer d ON k.distributer_id = d.id " +
+					 "LEFT JOIN kategorija kk ON k.kategorija_id = kk.id " +
+					 "LEFT JOIN kategorija gk ON kk.roditelj_id = gk.id " +
+					 "WHERE " +
+					 "k.ISBN = ? " +
+					 "GROUP BY " +
+					 "k.id, k.naslov, k.ISBN, k.broj_stranica, k.cena, d.id, i.id, kk.naziv, gk.naziv " +
+					 "ORDER BY " +
+					 "k.naslov ASC;";
 
 		try {
 			PreparedStatement pst = conn.prepareStatement(sql);
@@ -1217,12 +1215,7 @@ public class DatabaseConnection {
 				String distributer = rs.getString("Distributer");
 				String izdavac = rs.getString("Izdavač");
 				String kategorija = rs.getString("Kategorija");
-				String potkategorija = rs.getString("Potkategorija");
-
-				// Provera da li potkategorija ima vrednost
-				if (potkategorija == null) {
-					potkategorija = "Nema potkategorije";
-				}
+				String glavnaKategorija = rs.getString("GlavnaKategorija");
 
 				// Ispis podataka o knjizi
 				System.out.println("\n--- Detalji o knjizi ---");
@@ -1234,7 +1227,7 @@ public class DatabaseConnection {
 				System.out.println("Distributer: " + distributer);
 				System.out.println("Izdavač: " + izdavac);
 				System.out.println("Kategorija: " + kategorija);
-				System.out.println("Potkategorija: " + potkategorija);
+				System.out.println("Glavna kategorija: " + (glavnaKategorija != null ? glavnaKategorija : "N/A"));
 				System.out.println("-------------------------");
 			}
 
@@ -1975,6 +1968,126 @@ public class DatabaseConnection {
 		}
 	}
 
+	public void importKnjigaIzFajla() {
+		Scanner scanner = new Scanner(System.in);
+		System.out.println("Unesite naziv fajla sa kojim se importuju knjige:");
+		String putanjaDoFajla = scanner.nextLine().trim();
+		Connection conn = open();
+		if (conn == null) return;
+
+		try {
+			// Učitaj CSV fajl
+			BufferedReader reader = new BufferedReader(new FileReader(putanjaDoFajla));
+			String linija;
+
+			// Preskoči header (prvu liniju)
+			reader.readLine();
+
+			// SQL upit za unos knjige
+			String insertKnjigaQuery = "INSERT INTO knjiga (ISBN, naslov, broj_stranica, cena, distributer_id, izdavac_id, kategorija_id) " +
+					"VALUES (?, ?, ?, ?, ?, ?, ?)";
+			PreparedStatement knjigaStmt = conn.prepareStatement(insertKnjigaQuery, Statement.RETURN_GENERATED_KEYS);
+
+			// SQL upit za unos autora u tabelu autor_knjiga
+			String insertAutorKnjigaQuery = "INSERT INTO autor_knjiga (autor_id, knjiga_id) VALUES (?, ?)";
+			PreparedStatement autorKnjigaStmt = conn.prepareStatement(insertAutorKnjigaQuery);
+
+			// Pročitaj fajl liniju po liniju
+			while ((linija = reader.readLine()) != null) {
+				String[] podaci = linija.split(","); // Podeli liniju na kolone
+
+				// Proveri da li linija ima tačno 8 kolona
+				if (podaci.length != 8) {
+					System.out.println("Nevažeći format linije: " + linija);
+					continue;
+				}
+
+				// Parsiraj podatke iz CSV-a
+				String isbn = podaci[0].trim();
+				String naslov = podaci[1].trim();
+				int brojStranica = Integer.parseInt(podaci[2].trim());
+				BigDecimal cena = new BigDecimal(podaci[3].trim());
+				String distributerNaziv = podaci[4].trim();
+				String izdavacNaziv = podaci[5].trim();
+				String kategorijaNaziv = podaci[6].trim();
+				String autori = podaci[7].trim();
+
+				// Pronađi ID-jeve na osnovu imena
+				Integer distributerId = getIdByName("distributer", "ime", distributerNaziv);
+				Integer izdavacId = getIdByName("izdavac", "ime", izdavacNaziv);
+				Integer kategorijaId = getIdByName("kategorija", "naziv", kategorijaNaziv);
+
+				// Proveri da li su svi ID-jevi pronađeni
+				if (distributerId == null || izdavacId == null || kategorijaId == null) {
+					System.out.println("Nije moguće pronaći ID za distributera, izdavača ili kategoriju u liniji: " + linija);
+					continue;
+				}
+
+				// Postavi vrednosti u SQL upit za knjigu
+				knjigaStmt.setString(1, isbn);
+				knjigaStmt.setString(2, naslov);
+				knjigaStmt.setInt(3, brojStranica);
+				knjigaStmt.setBigDecimal(4, cena);
+				knjigaStmt.setInt(5, distributerId);
+				knjigaStmt.setInt(6, izdavacId);
+				knjigaStmt.setInt(7, kategorijaId);
+
+				// Izvrši unos knjige i dobij generisani ID
+				knjigaStmt.executeUpdate();
+				ResultSet rs = knjigaStmt.getGeneratedKeys();
+				int knjigaId = -1;
+				if (rs.next()) {
+					knjigaId = rs.getInt(1);
+				}
+
+				// Dodaj autore u tabelu autor_knjiga
+				String[] imenaAutora = autori.split(",");
+				for (String imeAutora : imenaAutora) {
+					imeAutora = imeAutora.trim();
+
+					// Razdvoji ime i prezime
+					String[] imePrezime = imeAutora.split(" ");
+					if (imePrezime.length != 2) {
+						System.out.println("Nevažeći format imena autora: " + imeAutora);
+						continue;
+					}
+
+					String ime = imePrezime[0].trim();
+					String prezime = imePrezime[1].trim();
+
+					// Pronađi ID autora na osnovu imena i prezimena
+					Integer autorId = getAutorIdByImePrezime(ime, prezime);
+					if (autorId == null) {
+						System.out.println("Autor '" + imeAutora + "' nije pronađen u bazi.");
+						continue;
+					}
+
+					// Postavi vrednosti u SQL upit za autor_knjiga
+					autorKnjigaStmt.setInt(1, autorId);
+					autorKnjigaStmt.setInt(2, knjigaId);
+					autorKnjigaStmt.executeUpdate();
+				}
+			}
+
+			System.out.println("Knjige su uspešno uvezene iz fajla.");
+
+			// Zatvori resurse
+			reader.close();
+			knjigaStmt.close();
+			autorKnjigaStmt.close();
+
+		} catch (FileNotFoundException e) {
+			System.out.println("Fajl nije pronađen: " + putanjaDoFajla);
+		} catch (IOException e) {
+			System.out.println("Greška pri čitanju fajla: " + e.getMessage());
+		} catch (SQLException e) {
+			System.out.println("Greška pri unosu podataka u bazu: " + e.getMessage());
+		} catch (NumberFormatException e) {
+			System.out.println("Nevažeći format broja u fajlu: " + e.getMessage());
+		} finally {
+			close(conn);
+		}
+	}
 
 
 
