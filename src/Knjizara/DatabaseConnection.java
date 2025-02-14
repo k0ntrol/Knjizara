@@ -969,13 +969,11 @@ public class DatabaseConnection {
 		Integer izdavacId = getOrCreateEntitet("izdavac", "ime", imeIzdavaca, scanner);
 
 		prikaziGlavneKategorije();
-		System.out.println("\nUnesite naziv glavne kategorije:");
-		String nazivGlavneKategorije = scanner.nextLine();
-		Integer glavaKategorijaId = getIdByName("kategorija", "naziv", nazivGlavneKategorije);
+		System.out.println("\nUnesite ID glavne kategorije:");
+		int glavaKategorijaId = scanner.nextInt();
 		prikaziPotkategorije(glavaKategorijaId);
-		System.out.println("\nUnesite naziv potkategorije:");
-		String nazivPotkategorije = scanner.nextLine();
-		Integer kategorijaId = getIdByName("kategorija", "naziv", nazivPotkategorije);
+		System.out.println("\nUnesite ID potkategorije:");
+		int kategorijaId = scanner.nextInt();
 
 		Integer bookId = insertKnjiga(ISBN, naslov, brojStranica, cena, distributerId, izdavacId, kategorijaId);
 
@@ -1340,8 +1338,7 @@ public class DatabaseConnection {
 		}
 	}
 
-	public void izdajRacunIzKonzole() {
-		Scanner scanner = new Scanner(System.in);
+	public void izdajRacunIzKonzole(Scanner scanner	) {
 		Connection conn = open();
 		if (conn == null) return;
 
@@ -1934,8 +1931,7 @@ public class DatabaseConnection {
 		}
 	}
 
-	public void importKnjigaIzFajla() {
-		Scanner scanner = new Scanner(System.in);
+	public void importKnjigaIzFajla(Scanner scanner	) {
 		System.out.println("Unesite naziv fajla sa kojim se importuju knjige:");
 		String putanjaDoFajla = scanner.nextLine().trim();
         Connection conn = open();
@@ -2060,19 +2056,15 @@ public class DatabaseConnection {
         if (conn == null) return;
 
         try {
-            // Učitaj CSV fajl
             BufferedReader reader = new BufferedReader(new FileReader(putanjaDoFajla));
             String linija;
 
-            // SQL upit za brisanje iz autor_knjiga (mora pre knjiga)
             String deleteAutorKnjigaQuery = "DELETE FROM autor_knjiga WHERE knjiga_id IN (SELECT id FROM knjiga WHERE ISBN = ?)";
             PreparedStatement autorKnjigaStmt = conn.prepareStatement(deleteAutorKnjigaQuery);
 
-            // SQL upit za brisanje knjige
             String deleteKnjigaQuery = "DELETE FROM knjiga WHERE ISBN = ?";
             PreparedStatement knjigaStmt = conn.prepareStatement(deleteKnjigaQuery);
 
-            // Čitaj liniju po liniju
             while ((linija = reader.readLine()) != null) {
                 String isbn = linija.trim();
 
@@ -2081,17 +2073,16 @@ public class DatabaseConnection {
                     continue;
                 }
 
-                // Proveri da li knjiga postoji pre brisanja
                 if (!knjigaPostoji(isbn)) {
                     System.out.println("Knjiga sa ISBN " + isbn + " ne postoji u bazi.");
                     continue;
                 }
 
-                // Prvo obriši iz tabele autor_knjiga
+                // Prvo se briše iz tabele autor_knjiga
                 autorKnjigaStmt.setString(1, isbn);
                 autorKnjigaStmt.executeUpdate();
 
-                // Zatim obriši knjigu
+                // Zatim se brise knjiga
                 knjigaStmt.setString(1, isbn);
                 int rowsDeleted = knjigaStmt.executeUpdate();
 
@@ -2104,7 +2095,6 @@ public class DatabaseConnection {
 
             System.out.println("Brisanje knjiga iz fajla završeno.");
 
-            // Zatvori resurse
             reader.close();
             autorKnjigaStmt.close();
             knjigaStmt.close();
@@ -2119,6 +2109,62 @@ public class DatabaseConnection {
             close(conn);
         }
     }
+
+	public void obrisiIzdavaca() {
+		Connection conn = open();
+		if (conn == null) return;
+
+		Scanner scanner = new Scanner(System.in);
+		System.out.print("Unesite ime izdavača za brisanje: ");
+		String izdavacIme = scanner.nextLine().trim();
+
+		try {
+			// Provera da li izdavač postoji i dobijanje ID-a
+			Integer izdavacId = getIdByName("izdavac", "ime", izdavacIme);
+			if (izdavacId == null) {
+				System.out.println("Izdavač '" + izdavacIme + "' ne postoji u bazi.");
+				return;
+			}
+
+			// Brisanje knjiga povezanih sa izdavačem
+			String deleteAutorKnjigaQuery = "DELETE FROM autor_knjiga WHERE knjiga_id IN (SELECT id FROM knjiga WHERE izdavac_id = ?)";
+			PreparedStatement autorKnjigaStmt = conn.prepareStatement(deleteAutorKnjigaQuery);
+			autorKnjigaStmt.setInt(1, izdavacId);
+			autorKnjigaStmt.executeUpdate();
+
+			String deleteKnjigaQuery = "DELETE FROM knjiga WHERE izdavac_id = ?";
+			PreparedStatement knjigaStmt = conn.prepareStatement(deleteKnjigaQuery);
+			knjigaStmt.setInt(1, izdavacId);
+			knjigaStmt.executeUpdate();
+
+			// Brisanje veze izdavača iz distributer_izdavac
+			String deleteDistributerIzdavacQuery = "DELETE FROM distributer_izdavac WHERE izdavac_id = ?";
+			PreparedStatement distributerIzdavacStmt = conn.prepareStatement(deleteDistributerIzdavacQuery);
+			distributerIzdavacStmt.setInt(1, izdavacId);
+			distributerIzdavacStmt.executeUpdate();
+
+			// Brisanje izdavača
+			String deleteIzdavacQuery = "DELETE FROM izdavac WHERE id = ?";
+			PreparedStatement izdavacStmt = conn.prepareStatement(deleteIzdavacQuery);
+			izdavacStmt.setInt(1, izdavacId);
+			int rowsDeleted = izdavacStmt.executeUpdate();
+
+			if (rowsDeleted > 0) {
+				System.out.println("Izdavač '" + izdavacIme + "' uspešno obrisan iz baze.");
+			} else {
+				System.out.println("Došlo je do greške pri brisanju izdavača.");
+			}
+			autorKnjigaStmt.close();
+			knjigaStmt.close();
+			distributerIzdavacStmt.close();
+			izdavacStmt.close();
+
+		} catch (SQLException e) {
+			System.out.println("Greška pri brisanju izdavača: " + e.getMessage());
+		} finally {
+			close(conn);
+		}
+	}
 
 
 

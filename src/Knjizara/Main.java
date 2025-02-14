@@ -9,7 +9,7 @@ public class Main {
 		DatabaseConnection d = new DatabaseConnection("jdbc:mysql://localhost:3306/knjizara", "root", "");
 
 		CenteredBoxAsciiArt.main(args);
-
+		Scanner scanner = new Scanner(System.in);
 		boolean exit = false;  // kontrola izlaska iz programa
 
 		while (!exit) {
@@ -25,27 +25,26 @@ public class Main {
 			System.out.println("=====================================");
 			System.out.print("Izaberite opciju: ");
 
-			Scanner scanner = new Scanner(System.in);
 			String choice = scanner.nextLine();
 
 			switch (choice) {
 				case "1":
-					showAddSubMenu();
+					showAddSubMenu(scanner);
 					break;
 				case "2":
-					showUpdateSubMenu();
+					showUpdateSubMenu(scanner);
 					break;
 				case "3":
-					showDisplaySubMenu();
+					showDisplaySubMenu(scanner);
 					break;
 				case "4":
-					showDeleteSubMenu();
+					showDeleteSubMenu(scanner);
 					break;
 				case "5":
-					d.izdajRacunIzKonzole();
+					d.izdajRacunIzKonzole(scanner);
 					break;
 				case "6":
-					d.importKnjigaIzFajla();
+					d.importKnjigaIzFajla(scanner);
 					break;
 				case "0":
 					exit = true;
@@ -59,8 +58,7 @@ public class Main {
 
 
 	}
-	private static void showAddSubMenu() {
-		Scanner scanner = new Scanner(System.in);
+	private static void showAddSubMenu(Scanner scanner) {
 		DatabaseConnection d = new DatabaseConnection("jdbc:mysql://localhost:3306/knjizara", "root", "");
 
 		boolean exit = false;
@@ -125,8 +123,7 @@ public class Main {
 
 	}
 
-	private static void showUpdateSubMenu() {
-		Scanner scanner = new Scanner(System.in);
+	private static void showUpdateSubMenu(Scanner scanner) {
 		DatabaseConnection d = new DatabaseConnection("jdbc:mysql://localhost:3306/knjizara", "root", "");
 
 		boolean exit = false;
@@ -218,8 +215,7 @@ public class Main {
 		}
 	}
 
-	private static void showDisplaySubMenu() {
-		Scanner scanner = new Scanner(System.in);
+	private static void showDisplaySubMenu(Scanner scanner) {
 		DatabaseConnection d = new DatabaseConnection("jdbc:mysql://localhost:3306/knjizara", "root", "");
 
 		boolean exit = false;
@@ -263,8 +259,8 @@ public class Main {
 		}
 	}
 
-	private static void showDeleteSubMenu() {
-		Scanner scanner = new Scanner(System.in);
+	private static void showDeleteSubMenu(Scanner scanner) {
+
 		DatabaseConnection d = new DatabaseConnection("jdbc:mysql://localhost:3306/knjizara", "root", "");
 
 		boolean exit = false;
@@ -273,6 +269,7 @@ public class Main {
 			System.out.println("1) Knjigu sa stanja");
 			System.out.println("2) Ukloni neaktivne kartice:");
             System.out.println("3) Obrisi knjige iz fajla:");
+            System.out.println("4) Obrisi izdavaca:");
 			System.out.println("0) Izlaz");
 			System.out.print("Izbor: ");
 
@@ -288,6 +285,9 @@ public class Main {
                 case "3":
                     d.obrisiKnjigeIzFajla();
                     break;
+				case "4":
+					d.obrisiIzdavaca();
+					break;
 				case "0":
 					exit = true;
 					System.out.println("Izlaz iz podmenija za brisanje.");
